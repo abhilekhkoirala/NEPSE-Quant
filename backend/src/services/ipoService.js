@@ -66,7 +66,7 @@ function runIpoScraper() {
     }
     ipoScraperRunning = true;
     console.log("[ipo] Starting scrape_ipo.py ...");
-    const py = spawn("python", [IPO_SCRAPER_FILE], { cwd: DATA_DIR });
+    const py = spawn("python3", [IPO_SCRAPER_FILE], { cwd: DATA_DIR });
     py.stdout.on("data", d => process.stdout.write(d.toString()));
     py.stderr.on("data", d => process.stderr.write(d.toString()));
     py.on("close", code => {

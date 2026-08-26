@@ -81,7 +81,7 @@ function runScraper() {
   console.log("[scraper] Starting NEPSE scraper...");
 
   return new Promise((resolve, reject) => {
-    const py = spawn("python", [PRICE_SCRAPER], { cwd: DATA_DIR });
+    const py = spawn("python3", [PRICE_SCRAPER], { cwd: DATA_DIR });
 
     py.stdout.on("data", d => process.stdout.write(d.toString()));
     py.stderr.on("data", d => process.stderr.write(d.toString()));
