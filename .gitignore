@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment variables (never commit real secrets)
+.env
+.env.local
+!.env.example
+
+# Scraped/generated data — working data, not source code
+backend/data/*
+!backend/data/.gitkeep
+
+# Python (scrapers)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

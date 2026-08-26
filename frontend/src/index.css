@@ -1,0 +1,220 @@
+/* ============================================================
+   NEPSE analytics platform — global design tokens & chrome.
+   Display/body: Inter — used everywhere except financial figures.
+   Data/mono: IBM Plex Mono — reserved for tickers, prices, percentages,
+     and other numeric columns where fixed-width alignment matters.
+   One accent (blue) carries all interactive/selection meaning; the
+   dark theme itself is charcoal, not black, and never neon.
+   ============================================================ */
+
+:root{
+  --bg: #0D0F12;
+  --surface: #14171B;
+  --surface-elevated: #191C21;
+  --border: #272B31;
+  --border-strong: #33383F;
+  --text: #F2F4F7;
+  --text-secondary: #9BA1AA;
+  --text-muted: #6F7680;
+  --accent: #5B8DEF;
+  --gain: #3FB88A;
+  --loss: #E5484D;
+  --warning: #D9A544;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --speed: 160ms;
+  --font-ui: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  /* Mobile breakpoint used throughout this file: 767px (media query conditions
+     can't reference custom properties, so it's a literal in every @media rule). */
+}
+
+*, *::before, *::after{ box-sizing: border-box; }
+
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+html, body{ margin: 0; }
+
+#root{ min-height: 100vh; }
+
+body{
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+}
+
+h1, h2, h3{ font-family: var(--font-ui); font-weight: 600; letter-spacing: normal; margin: 0; }
+
+::selection{ background: var(--accent); color: #0D0F12; }
+
+/* thin scrollbars */
+::-webkit-scrollbar{ width: 9px; height: 9px; }
+::-webkit-scrollbar-track{ background: var(--bg); }
+::-webkit-scrollbar-thumb{ background: var(--border); border-radius: 5px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover{ background: var(--text-muted); }
+
+:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+/* ---------- buttons ---------- */
+.btn{
+  font-family: var(--font-ui); font-size: 13px; font-weight: 500; letter-spacing: normal;
+  padding: 9px 16px; border: 1px solid var(--border); border-radius: var(--radius-md);
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  background: transparent; color: var(--text);
+  transition: background var(--speed) ease, color var(--speed) ease, border-color var(--speed) ease;
+}
+.btn:hover:not(:disabled){ border-color: var(--border-strong); }
+.btn:disabled{ cursor: default; opacity: .5; }
+.btn-primary{ background: var(--accent); color: #0D0F12; border-color: var(--accent); font-weight: 600; }
+.btn-primary:hover:not(:disabled){ background: #6E9BF2; border-color: #6E9BF2; color: #0D0F12; }
+.btn-ghost{ background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+.btn-ghost:hover:not(:disabled){ color: var(--text); border-color: var(--border-strong); }
+.btn-segment{
+  font-family: var(--font-ui); font-size: 12.5px; font-weight: 500;
+  padding: 7px 14px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary);
+  cursor: pointer; transition: background var(--speed) ease, color var(--speed) ease, border-color var(--speed) ease;
+}
+.btn-segment.active{ background: var(--accent); color: #0D0F12; border-color: var(--accent); font-weight: 600; }
+.btn-segment:hover:not(.active){ color: var(--text); border-color: var(--border-strong); }
+
+/* ---------- nav rail (persistent left nav) ---------- */
+.nav-group-label{
+  padding: 16px 18px 6px; font-size: 11px; font-weight: 600; letter-spacing: .04em;
+  color: var(--text-muted); text-transform: uppercase;
+}
+.nav-item{
+  position: relative; width: 100%; display: flex; align-items: center; gap: 10px;
+  padding: 8px 18px; background: none; border: none; border-left: 2px solid transparent;
+  color: var(--text-secondary); cursor: pointer; text-align: left;
+  font-family: var(--font-ui); font-size: 13px; font-weight: 500;
+  transition: color var(--speed) ease, border-color var(--speed) ease, background var(--speed) ease;
+}
+.nav-item:hover{ color: var(--text); background: var(--surface); }
+.nav-item.active{ color: var(--text); border-left-color: var(--accent); background: var(--surface); }
+.nav-item .nav-icon{ display: flex; flex-shrink: 0; color: inherit; opacity: 0.85; }
+
+/* ---------- panel/card chrome ---------- */
+.panel-card{
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  background: var(--surface); position: relative;
+}
+
+/* ---------- tags / pills ---------- */
+.tag{
+  display: inline-flex; align-items: center;
+  font-size: 11px; letter-spacing: .02em; color: var(--loss);
+  border: 1px solid var(--loss); padding: 3px 8px; border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+}
+.pill{
+  display: inline-flex; align-items: center;
+  font-size: 11px; letter-spacing: .02em; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 3px 9px; white-space: nowrap; color: var(--text-secondary);
+  font-family: var(--font-ui); background: var(--surface-elevated);
+}
+
+/* ---------- reveal-on-tab-switch ---------- */
+.reveal{ opacity: 0; transform: translateY(4px); transition: opacity 200ms ease, transform 200ms ease; }
+.reveal.in-view{ opacity: 1; transform: translateY(0); }
+
+/* ---------- range inputs ---------- */
+input[type="range"]{ height: 4px; background: var(--border); border-radius: 2px; -webkit-appearance: none; }
+input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--accent); cursor: pointer; border: 2px solid var(--bg); box-shadow: 0 0 0 1px var(--accent);
+}
+input[type="range"]::-moz-range-thumb{
+  width: 14px; height: 14px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg); cursor: pointer;
+}
+
+/* ---------- text inputs ---------- */
+.input{
+  font-family: var(--font-ui); font-size: 13px; color: var(--text);
+  background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: 9px 12px; transition: border-color var(--speed) ease;
+}
+.input:focus{ outline: none; border-color: var(--accent); }
+.input::placeholder{ color: var(--text-muted); }
+
+/* ---------- price-tick flash — brief, calm, fades back to base color ---------- */
+@keyframes tickFlashGain{
+  0%   { color: var(--gain); background: rgba(63,184,138,0.14); }
+  100% { color: inherit; background: transparent; }
+}
+@keyframes tickFlashLoss{
+  0%   { color: var(--loss); background: rgba(229,72,77,0.14); }
+  100% { color: inherit; background: transparent; }
+}
+.tick-flash-gain{ animation: tickFlashGain 700ms ease-out; border-radius: 2px; }
+.tick-flash-loss{ animation: tickFlashLoss 700ms ease-out; border-radius: 2px; }
+
+/* ---------- panel collapse/expand — CSS-grid row technique, no JS height math ---------- */
+.collapse-wrap{
+  display: grid; grid-template-rows: 1fr;
+  transition: grid-template-rows var(--speed) ease;
+}
+.collapse-wrap.collapsed{ grid-template-rows: 0fr; }
+.collapse-inner{ overflow: hidden; min-height: 0; }
+
+/* ---------- table rows ---------- */
+.table-row{ transition: background var(--speed) ease; }
+.table-row:hover{ background: var(--surface-elevated); }
+.table-row-clickable{ cursor: pointer; }
+
+/* ---------- dropzone (portfolio import) ---------- */
+.dropzone{
+  border: 1px dashed var(--border); border-radius: var(--radius-md);
+  transition: border-color var(--speed) ease, background var(--speed) ease;
+}
+.dropzone.drag-active{ border-color: var(--accent); background: var(--accent-soft, rgba(91,141,239,0.08)); }
+
+/* ---------- responsive utilities ---------- */
+/* Panel-level multi-column layouts (independent panels/cards side by side) —
+   collapse to one column below the mobile breakpoint. Not for table-column
+   grids, which use .grid-table-scroll instead so cell/header alignment survives. */
+@media (max-width: 767px){
+  .grid-responsive{ grid-template-columns: 1fr !important; }
+  .grid-table-scroll{ overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+/* ---------- mobile shell (≤767px) ----------
+   Density drops, visual language (tokens, type, monospace numerals) does not.
+   Nav rail: vertical icon+label column → horizontal scrollable top bar (icon
+   only, label hidden). Persistent dashboard: sticky sidebar → static,
+   full-width, stacked above the tab workspace (regime terrain + watchlist
+   stay visible; the portfolio/risk panel defaults collapsed via useIsMobile()). */
+@media (max-width: 767px){
+  .app-shell{ flex-direction: column; }
+
+  .app-nav{
+    flex-direction: row; width: 100%; height: auto; min-height: 0;
+    overflow-x: auto; overflow-y: hidden; position: sticky; top: 0; z-index: 6;
+    border-right: none; border-bottom: 1px solid var(--border);
+  }
+  .app-nav-logo{ flex-shrink: 0; border-bottom: none; border-right: 1px solid var(--border); padding: 10px 14px; }
+  .app-nav-logo-sub{ display: none; }
+  .app-nav-items{ flex: none; display: flex; flex-direction: row; padding: 0; }
+  .app-nav-status{ display: none; }
+  .nav-group-label{ display: none; }
+
+  .app-nav .nav-item{
+    flex-direction: column; gap: 3px; width: auto; white-space: nowrap;
+    padding: 8px 14px; border-left: none; border-bottom: 2px solid transparent;
+  }
+  .app-nav .nav-item.active{ border-left-color: transparent; border-bottom-color: var(--accent); }
+  .app-nav .nav-item-label{ display: none; }
+
+  .app-dash{
+    width: 100%; position: static; height: auto; overflow-y: visible;
+    border-right: none; border-bottom: 1px solid var(--border);
+  }
+}
