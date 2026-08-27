@@ -38,9 +38,15 @@ function TaxCostBreakdown({ result }) {
           {rows.slice().reverse().map((r, i) => {
             const regimeColor = REGIME_COLORS[r.regime] || K.textMuted;
             const regimeLabel = REGIME_LABELS[r.regime] || r.regime;
+            // startDate/endDate are real calendar dates computed server-side
+            // (see backend/src/api/backtests.js withTaxBreakdown); fall back
+            // to the raw day-indices only if a run somehow has no dates.
+            const period = r.startDate
+              ? (r.startDate === r.endDate ? r.startDate : `${r.startDate} – ${r.endDate}`)
+              : `${r.startDay}–${r.endDay}`;
             return (
               <tr key={i}>
-                <td style={{ fontFamily: K.fontMono, color: K.text }}>{r.startDay}–{r.endDay}</td>
+                <td style={{ fontFamily: K.fontMono, color: K.text }}>{period}</td>
                 <td style={{ color: regimeColor, fontSize: 12 }}>{regimeLabel}</td>
                 <td className="num" data-align="right" style={{ color: K.textSecondary }}>{r.grossRet.toFixed(2)}%</td>
                 <td className="num" data-align="right" style={{ color: K.warning }}>−{(r.txCostFrac * 100).toFixed(2)}%</td>

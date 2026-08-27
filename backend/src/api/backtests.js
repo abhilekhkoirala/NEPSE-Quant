@@ -20,14 +20,27 @@ const router = Router();
 // Per-period tax/cost breakdown (Estimated CGT overlay on top of the
 // txn-cost-aware curve). Moved from the TaxCostBreakdown component — same
 // formula, applied once here instead of recomputed on every render.
-function withTaxBreakdown(periods, curve) {
+//
+// p.startDay/p.endDay are raw-index positions into the returns/curve
+// arrays, NOT dates (see backend/src/quant/backtest.js) — they used to be
+// rendered directly in the UI, which is meaningless once nD gets into the
+// thousands (a 4-digit day-index looks like a plausible year by
+// coincidence). `dates[i]` is the calendar date of price row i, and
+// returns[t] = log(price[t+1]/price[t]), so the date a given index t
+// actually corresponds to is dates[t+1]. `dates` is optional (the
+// synthetic generateData() fallback always provides one, but guard anyway)
+// — rows fall back to the raw indices if it's missing.
+function withTaxBreakdown(periods, curve, dates) {
+  const dateFor = i => dates?.[i + 1];
   const rows = periods.map(p => {
     const eStart = equityAtOrBefore(curve, p.startDay);
     const eEnd = equityAtOrBefore(curve, p.endDay);
     const net = (eEnd.equity / eStart.equity - 1) * 100;
     const cgt = net > 0 ? net * CGT_SHORT_TERM_RATE : 0;
     const netOfTax = net - cgt;
-    return { ...p, net, cgt, netOfTax };
+    const startDate = dateFor(p.startDay);
+    const endDate = dateFor(p.endDay);
+    return { ...p, net, cgt, netOfTax, startDate, endDate };
   });
   const compound = key => rows.reduce((acc, r) => acc * (1 + r[key] / 100), 1);
   const totals = {
@@ -41,7 +54,7 @@ function withTaxBreakdown(periods, curve) {
 }
 
 function shapeBacktestResponse(result) {
-  const { rows, totals } = withTaxBreakdown(result.periods, result.curve);
+  const { rows, totals } = withTaxBreakdown(result.periods, result.curve, result.dates);
   return {
     id: result.id,
     computedAt: result.computedAt,

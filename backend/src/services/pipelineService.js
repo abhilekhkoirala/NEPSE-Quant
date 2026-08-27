@@ -120,6 +120,7 @@ async function runPipeline(rawData, params = DEFAULT_PARAMS, newsItems = []) {
     returns: raw.returns,
     nD: raw.nD,
     lastPrices: raw.lastPrices,
+    dates: raw.dates,
     corr: Cfinal,
     homoData,
     regimeSeries,

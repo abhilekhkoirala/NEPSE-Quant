@@ -26,7 +26,14 @@ function generateData(nD = 750) {
   });
   const returns = tickers.map((_, i) =>
     Array.from({ length: nD }, (_, t) => mBeta[i]*mRet[t] + sBeta[i]*sRet[sectors[i]][t] + idio[i][t]));
-  return { tickers, sectors, sectorNames: FALLBACK_SEC_NAMES, returns, nD };
+  // Synthetic calendar so this fallback dataset carries the same `dates`
+  // shape (nD+1 entries, one per "price row") that parseCSVData produces
+  // from a real CSV — keeps downstream code (periods date-labeling) from
+  // needing to special-case the no-dates case.
+  const dayMs = 86400000;
+  const base = Date.UTC(2020, 0, 1);
+  const dates = Array.from({ length: nD + 1 }, (_, i) => new Date(base + i * dayMs).toISOString().slice(0, 10));
+  return { tickers, sectors, sectorNames: FALLBACK_SEC_NAMES, returns, nD, dates };
 }
 
 
@@ -79,8 +86,10 @@ function parseCSVData(csvText, sectorMeta = null) {
   const sectors = tickers.map(t => tickerToIdx[t] ?? (sectorNames.length - 1));
 
   const prices = tickers.map(() => []);
+  const dates = [];
   for (let i = 1; i < lines.length; i++) {
     const cols = lines[i].split(",").map(c => c.trim().replace(/^"|"$/g, ""));
+    dates.push(cols[0]);
     for (let j = 0; j < tickers.length; j++) {
       const v = parseFloat(cols[j + 1]);
       prices[j].push(isNaN(v) || v <= 0 ? null : v);
@@ -103,7 +112,12 @@ function parseCSVData(csvText, sectorMeta = null) {
     })
   );
 
-  return { tickers, sectors, sectorNames, returns, nD, lastPrices: prices.map(p => p[p.length-1]) };
+  // dates[i] is the calendar date of price row i (same indexing as the
+  // `prices` columns above, length nD+1). returns[stock][t] = log(price[t+1]/price[t]),
+  // i.e. the return at row-index t is realized on dates[t+1] — that's the
+  // mapping periods/curve "day" indices use to get real dates back (see
+  // backend/src/api/backtests.js withTaxBreakdown).
+  return { tickers, sectors, sectorNames, returns, nD, lastPrices: prices.map(p => p[p.length-1]), dates };
 }
 
 // Returns a flat Float64Array of size n×n (row-major) for cache-efficient access.
