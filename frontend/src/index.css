@@ -259,14 +259,9 @@ input[type="range"]::-moz-range-thumb{
 }
 .dropzone.drag-active{ border-color: var(--accent); background: var(--accent-soft); }
 
-/* ---------- loading — quant engine progress checklist ---------- */
-.loading-steps{ display: flex; flex-direction: column; gap: 9px; width: 320px; max-width: 100%; }
-.loading-step{ display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text-muted); }
-.loading-step.done{ color: var(--text-secondary); }
-.loading-step.active{ color: var(--text); }
-.loading-step-mark{ width: 14px; flex-shrink: 0; text-align: center; font-family: var(--font-mono); font-size: 12px; }
-.loading-step.done .loading-step-mark{ color: var(--positive, var(--gain)); }
-.loading-step.active .loading-step-mark{ color: var(--accent); }
+/* ---------- loading — monte carlo path reveal ---------- */
+@keyframes loadingMarkerPulse{ 0%, 100%{ r: 3; opacity: 1; } 50%{ r: 4; opacity: 0.75; } }
+.loading-marker-dot{ animation: loadingMarkerPulse 1.4s ease-in-out infinite; }
 
 /* ---------- responsive utilities ---------- */
 /* Panel-level multi-column layouts (independent panels/cards side by side) —
