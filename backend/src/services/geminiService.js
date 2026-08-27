@@ -11,7 +11,7 @@
 import { getCurrent } from "./pipelineService.js";
 import { loadNews } from "./newsService.js";
 
-const GEMINI_MODEL = "gemini-1.5-flash";
+const GEMINI_MODEL = "gemini-3.7-flash";
 
 function buildSystemContext() {
   const result = getCurrent();
