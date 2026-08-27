@@ -1,17 +1,29 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { K, SP } from "../common/theme.js";
 
 // A single simulated equity curve, trending up — reads as "the strategy
-// is profitable" rather than a generic progress bar. `pct` reveals the
-// line left-to-right via a clip rect, driven directly by the real boot
-// progress passed down from App.jsx; nothing here loops independently
-// of actual progress.
+// is profitable" rather than a generic progress bar. The line reveal is
+// still ultimately driven by the real boot progress App.jsx sends down
+// as `pct` — but App.jsx only reports a handful of discrete milestones
+// (10 → 20 → 30 → 45 → 60 → 100), each held for however long that real
+// step takes. Drawn literally, that means the line jumps then freezes
+// dead for the length of the slowest step (regime detection, in
+// practice). `display` below eases toward each new `pct` instead of
+// snapping to it, and — this is the part that actually fixes the
+// "stuck" feeling — keeps creeping slowly forward even while `pct`
+// itself hasn't moved, capped a few points ahead so it never overtakes
+// the next real milestone or implies false completion.
 const W = 400;
 const H = 110;
 const PAD = 10;
 const STEPS = 36;
 const DRIFT = 0.55; // avg % gain per step
 const NOISE = 1.8; // % noise band per step
+
+const CATCH_UP_SPEED = 5; // higher = snappier ease toward a new real pct
+const TRICKLE_PER_SEC = 0.6; // %/sec crawl while waiting on the same pct
+const TRICKLE_MAX_LEAD = 8; // never crawl more than this far past real pct
+const TRICKLE_CEILING = 98; // never crawl to 100 on our own — only a real pct of 100 does that
 
 function buildSeries() {
   const vals = [100];
@@ -46,11 +58,42 @@ function toPoints(pts) {
   return pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
 }
 
+// Eases toward the latest real `pct`, then trickles slowly past it
+// (capped) whenever the real value hasn't advanced in a while — so the
+// line is always visibly, slowly moving instead of freezing between
+// App.jsx's milestone updates.
+function useTrickledPct(pct) {
+  const targetRef = useRef(pct);
+  const [display, setDisplay] = useState(pct);
+  useEffect(() => { targetRef.current = pct; }, [pct]);
+
+  useEffect(() => {
+    let raf, last = performance.now();
+    function tick(now) {
+      const dt = Math.min(0.1, (now - last) / 1000); // clamp in case of a tab throttle/hiccup
+      last = now;
+      setDisplay(d => {
+        const target = targetRef.current;
+        if (target >= 100) return 100;
+        if (d < target) return d + (target - d) * Math.min(1, dt * CATCH_UP_SPEED);
+        const cap = Math.min(target + TRICKLE_MAX_LEAD, TRICKLE_CEILING);
+        return Math.min(d + TRICKLE_PER_SEC * dt, cap);
+      });
+      raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  return display;
+}
+
 function Loading({ phase, pct }) {
   const { pts, gainPct } = useMemo(buildSeries, []);
-  const revealX = Math.max(0, Math.min(W, (pct / 100) * W));
+  const display = useTrickledPct(pct);
+  const revealX = Math.max(0, Math.min(W, (display / 100) * W));
   const markerY = valueAtX(pts, revealX);
-  const runningGain = gainPct * (pct / 100);
+  const runningGain = gainPct * (display / 100);
   const areaPath = `M0,${H} L${toPoints(pts)} L${W},${H} Z`;
 
   return (
@@ -80,7 +123,7 @@ function Loading({ phase, pct }) {
 
       <div style={{ display: "flex", alignItems: "baseline", gap: SP.md, width: "100%", maxWidth: 400, marginTop: SP.lg }}>
         <div style={{ fontSize: 12, color: K.textMuted, fontFamily: K.fontMono, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{phase}</div>
-        <div style={{ fontSize: 12, color: K.textSecondary, fontFamily: K.fontMono, marginLeft: "auto", flexShrink: 0 }}>{Math.round(pct)}%</div>
+        <div style={{ fontSize: 12, color: K.textSecondary, fontFamily: K.fontMono, marginLeft: "auto", flexShrink: 0 }}>{Math.round(display)}%</div>
       </div>
     </div>
   );
