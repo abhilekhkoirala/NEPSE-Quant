@@ -142,6 +142,30 @@ function runScraper() {
 
 function isScraperRunning() { return scraperRunning; }
 
+// ─── News-only refresh (POST /api/news/refresh) — runs just
+// scrape_news.py, skipping the (much slower) price/sector pass. Useful
+// when you only want a fresher news feed and already have current price
+// data. Guarded by its own flag, separate from scraperRunning, so a
+// news-only refresh and a full price refresh can't be kicked off on top
+// of each other, but a news-only refresh also won't block/be blocked by
+// an unrelated price refresh already in flight — worth noting though:
+// if a full runScraper() is already running, it'll run its own news
+// pass at the end anyway, so triggering both back-to-back just means
+// scrape_news.py runs twice in a row, not a conflict, just wasted work.
+let newsScraperRunning = false;
+
+function runNewsOnlyRefresh() {
+  if (newsScraperRunning) {
+    console.log("[scraper] News-only refresh already running, skipping.");
+    return Promise.resolve("already_running");
+  }
+  newsScraperRunning = true;
+  console.log("[scraper] Starting news-only refresh...");
+  return runNewsScraper().finally(() => { newsScraperRunning = false; });
+}
+
+function isNewsScraperRunning() { return newsScraperRunning; }
+
 // The "when to auto-scrape" scheduling concern lives in workers/scheduler.js
 // (section 15 of the brief: isolate background jobs under backend/workers/
 // so they can later move to cron/APScheduler/etc.) — it calls back into
@@ -150,4 +174,5 @@ export {
   DATA_DIR, CSV_OUT, SECTORS_OUT, NEWS_OUT, PORTFOLIO_FILE,
   loadRaw, invalidateRaw, loadDefaultPortfolio, parsePortfolioCSV,
   runScraper, isScraperRunning,
+  runNewsOnlyRefresh, isNewsScraperRunning,
 };
