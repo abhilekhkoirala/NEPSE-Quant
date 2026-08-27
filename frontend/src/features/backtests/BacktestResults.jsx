@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { AreaChart, Area, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { K, SP, TTP } from "../../components/common/theme.js";
-import { Panel, SL } from "../../components/layout/Panel.jsx";
+import { SL } from "../../components/layout/Panel.jsx";
 import { MetricRow } from "../../components/common/MetricCard.jsx";
 import backtestsApi from "../../lib/api/backtests.js";
 
@@ -9,7 +9,12 @@ import backtestsApi from "../../lib/api/backtests.js";
 // curve) is computed server-side (backend/src/quant/backtest.js, exposed
 // at GET /api/backtests/current/risk-band) and merged with the curve here
 // for the chart — no modeling happens in this component.
-function BacktestResults({ result }) {
+//
+// `sidePanel` is an optional node rendered beside the equity chart (the
+// Overview page uses it for a compact "Current Regime" snapshot) — kept
+// as a slot rather than baked in, since this component has no regime
+// data of its own to show.
+function BacktestResults({ result, sidePanel = null }) {
   const m = result.m;
   const weights = result.signalData.map(d => d.weight).filter(w => w > 0);
   const hhi = +(weights.reduce((a, w) => a + w * w, 0) * 10000).toFixed(0);
@@ -29,6 +34,13 @@ function BacktestResults({ result }) {
     return { day: b.day, p10: b.p10, p25: b.p25, p50: b.p50, p75: b.p75, p90: b.p90, equity: c.equity, benchmark: c.benchmark };
   }).filter(Boolean), [band, dayIndex]);
 
+  const headline = [
+    { label: "Return", value: `${m.annRet}%`, tone: m.annRet > 0 ? "positive" : "negative" },
+    { label: "Sharpe", value: m.sharpe, tone: m.sharpe > 0.5 ? "positive" : "neutral" },
+    { label: "Max Drawdown", value: `${m.maxDD}%`, tone: m.maxDD <= -15 ? "negative" : "neutral" },
+    { label: "Volatility", value: `${m.annVol}%`, tone: "neutral" },
+  ];
+
   const riskMetrics = [
     { label: "Max Drawdown", value: `${m.maxDD}%`, warn: m.maxDD <= -15 },
     { label: "Sharpe Ratio", value: m.sharpe, good: m.sharpe > 0.5 },
@@ -41,62 +53,58 @@ function BacktestResults({ result }) {
   ];
 
   return (
-    <Panel style={{ padding: 0 }}>
-      <div style={{ padding: `${SP.lg}px ${SP.lg}px 0` }}>
-        <SL>Backtest Performance</SL>
-      </div>
-      <div style={{ padding: `0 ${SP.lg}px` }}>
-        <MetricRow columns={3} items={[
-          { label: "Total Return", value: `${m.totRet}%`, tone: m.totRet > 0 ? "positive" : "negative" },
-          { label: "Benchmark Return", value: `${m.benRet}%`, tone: "neutral" },
-          { label: "Annualized Return", value: `${m.annRet}%`, tone: m.annRet > 0 ? "positive" : "negative" },
-        ]} />
+    <div>
+      <MetricRow columns={4} items={headline} />
+      <div style={{ fontSize: 12, color: K.textMuted, marginTop: SP.sm }}>
+        Total return <span style={{ color: m.totRet > 0 ? K.positive : K.negative, fontFamily: K.fontMono }}>{m.totRet}%</span>
+        <span style={{ margin: "0 8px" }}>·</span>
+        Benchmark <span style={{ color: K.textSecondary, fontFamily: K.fontMono }}>{m.benRet}%</span>
       </div>
 
-      <div style={{ padding: `${SP.xl}px ${SP.lg}px 0` }}>
-        <SL right="Bootstrap band — resampled from realized daily returns">Equity vs Benchmark</SL>
-        <ResponsiveContainer width="100%" height={340}>
-          <AreaChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-            <defs>
-              <linearGradient id="bqband90" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={K.textMuted} stopOpacity={0.14} /><stop offset="100%" stopColor={K.textMuted} stopOpacity={0} /></linearGradient>
-              <linearGradient id="bqband75" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={K.textMuted} stopOpacity={0.22} /><stop offset="100%" stopColor={K.textMuted} stopOpacity={0} /></linearGradient>
-            </defs>
-            <XAxis dataKey="day" stroke={K.border} tick={{ fontSize: 11, fill: K.textMuted, fontFamily: K.fontUI }} />
-            <YAxis stroke={K.border} tick={{ fontSize: 11, fill: K.textMuted, fontFamily: K.fontUI }} domain={["auto", "auto"]} />
-            <Tooltip {...TTP} />
-            <ReferenceLine y={1} stroke={K.border} strokeDasharray="4 4" />
-            <Area type="monotone" dataKey="p90" stroke="none" fill="url(#bqband90)" dot={false} name="90th pct" />
-            <Area type="monotone" dataKey="p75" stroke="none" fill="url(#bqband75)" dot={false} name="75th pct" />
-            <Area type="monotone" dataKey="p25" stroke="none" fill="url(#bqband90)" dot={false} fillOpacity={0} name="25th pct" />
-            <Line type="monotone" dataKey="p90" stroke={K.textMuted} strokeDasharray="3 2" strokeWidth={1} dot={false} name="90th" />
-            <Line type="monotone" dataKey="p10" stroke={K.textMuted} strokeDasharray="3 2" strokeWidth={1} dot={false} name="10th" />
-            <Line type="monotone" dataKey="p50" stroke={K.textMuted} strokeWidth={1} dot={false} name="Bootstrap median" />
-            <Line type="monotone" dataKey="benchmark" stroke={K.textSecondary} strokeDasharray="2 2" strokeWidth={1.3} dot={false} name="Benchmark" />
-            <Line type="monotone" dataKey="equity" stroke={K.positive} strokeWidth={2.2} dot={false} name="Strategy" />
-          </AreaChart>
-        </ResponsiveContainer>
-        <div style={{ display: "flex", gap: SP.md, marginTop: SP.xs, marginBottom: SP.xl, fontSize: 11, color: K.textMuted, flexWrap: "wrap" }}>
-          <span style={{ color: K.positive }}>— Strategy</span>
-          <span>- - Benchmark</span>
-          <span style={{ opacity: 0.8 }}>— Bootstrap median</span>
-          <span style={{ opacity: 0.6 }}>10th–90th pct band</span>
+      <div className="grid-responsive" style={{ display: "grid", gridTemplateColumns: sidePanel ? "1fr 260px" : "1fr", gap: SP.xl, marginTop: SP.xl }}>
+        <div style={{ minWidth: 0 }}>
+          <SL right="Bootstrap band — resampled from realized daily returns">Equity Curve</SL>
+          <ResponsiveContainer width="100%" height={320}>
+            <AreaChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+              <defs>
+                <linearGradient id="bqband90" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={K.textMuted} stopOpacity={0.14} /><stop offset="100%" stopColor={K.textMuted} stopOpacity={0} /></linearGradient>
+                <linearGradient id="bqband75" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={K.textMuted} stopOpacity={0.22} /><stop offset="100%" stopColor={K.textMuted} stopOpacity={0} /></linearGradient>
+              </defs>
+              <XAxis dataKey="day" stroke={K.border} tick={{ fontSize: 11, fill: K.textMuted, fontFamily: K.fontUI }} />
+              <YAxis stroke={K.border} tick={{ fontSize: 11, fill: K.textMuted, fontFamily: K.fontUI }} domain={["auto", "auto"]} />
+              <Tooltip {...TTP} />
+              <ReferenceLine y={1} stroke={K.border} strokeDasharray="4 4" />
+              <Area type="monotone" dataKey="p90" stroke="none" fill="url(#bqband90)" dot={false} name="90th pct" />
+              <Area type="monotone" dataKey="p75" stroke="none" fill="url(#bqband75)" dot={false} name="75th pct" />
+              <Area type="monotone" dataKey="p25" stroke="none" fill="url(#bqband90)" dot={false} fillOpacity={0} name="25th pct" />
+              <Line type="monotone" dataKey="p90" stroke={K.textMuted} strokeDasharray="3 2" strokeWidth={1} dot={false} name="90th" />
+              <Line type="monotone" dataKey="p10" stroke={K.textMuted} strokeDasharray="3 2" strokeWidth={1} dot={false} name="10th" />
+              <Line type="monotone" dataKey="p50" stroke={K.textMuted} strokeWidth={1} dot={false} name="Bootstrap median" />
+              <Line type="monotone" dataKey="benchmark" stroke={K.textSecondary} strokeDasharray="2 2" strokeWidth={1.3} dot={false} name="Benchmark" />
+              <Line type="monotone" dataKey="equity" stroke={K.positive} strokeWidth={2.2} dot={false} name="Strategy" />
+            </AreaChart>
+          </ResponsiveContainer>
+          <div style={{ display: "flex", gap: SP.md, marginTop: SP.xs, fontSize: 11, color: K.textMuted, flexWrap: "wrap" }}>
+            <span style={{ color: K.positive }}>— Strategy</span>
+            <span>- - Benchmark</span>
+            <span style={{ opacity: 0.8 }}>— Bootstrap median</span>
+            <span style={{ opacity: 0.6 }}>10th–90th pct band</span>
+          </div>
         </div>
+        {sidePanel && <div>{sidePanel}</div>}
       </div>
 
-      <div style={{ padding: `0 ${SP.lg}px ${SP.lg}px`, borderTop: `1px solid ${K.border}`, marginTop: SP.xs }}>
-        <div style={{ paddingTop: SP.lg }}>
-          <SL>Risk Metrics</SL>
-        </div>
-        <div className="grid-responsive" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", columnGap: SP.lg, rowGap: SP.sm }}>
-          {riskMetrics.map(r => (
-            <div key={r.label} style={{ padding: "8px 0", borderBottom: `1px solid ${K.border}` }}>
-              <div style={{ fontSize: 12, color: K.textSecondary, marginBottom: 3 }}>{r.label}</div>
-              <div style={{ fontSize: 15, fontFamily: K.fontMono, color: r.warn ? K.negative : r.good ? K.positive : K.text }}>{r.value}</div>
-            </div>
-          ))}
-        </div>
+      <hr className="divider" />
+      <SL>Risk Metrics</SL>
+      <div className="grid-responsive" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", columnGap: SP.lg, rowGap: SP.sm }}>
+        {riskMetrics.map(r => (
+          <div key={r.label} style={{ padding: "8px 0", borderBottom: `1px solid ${K.border}` }}>
+            <div style={{ fontSize: 12, color: K.textSecondary, marginBottom: 3 }}>{r.label}</div>
+            <div style={{ fontSize: 15, fontFamily: K.fontMono, color: r.warn ? K.negative : r.good ? K.positive : K.text }}>{r.value}</div>
+          </div>
+        ))}
       </div>
-    </Panel>
+    </div>
   );
 }
 

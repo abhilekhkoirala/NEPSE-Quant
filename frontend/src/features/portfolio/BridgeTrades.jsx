@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
 import { K, SP, RADIUS } from "../../components/common/theme.js";
-import { Panel, SL } from "../../components/layout/Panel.jsx";
+import { SL } from "../../components/layout/Panel.jsx";
 import { EmptyState } from "../../components/common/EmptyState.jsx";
 import portfolioApi from "../../lib/api/portfolio.js";
-
-const COLS = "70px 65px 65px 50px 58px 90px";
 
 // Diffing the user's holdings against the model's target weights, and the
 // merolagani price-fallback fetch for tickers missing from the CSV, both
@@ -30,23 +28,22 @@ function BridgeTrades({ result, userPortfolioCount, refreshKey }) {
   }, [result.id, refreshKey]);
 
   if (userPortfolioCount === 0) {
-    return (<Panel>
-      <SL>Bridge Trades · Aligning to Model Target</SL>
+    return (
       <EmptyState
         title="No portfolio loaded"
         description={<>Upload your portfolio CSV above (columns: <span style={{ fontFamily: K.fontMono, color: K.text }}>Scrip</span>, <span style={{ fontFamily: K.fontMono, color: K.text }}>Current Balance</span>) to see current weights and bridge trades.</>}
       />
-    </Panel>);
+    );
   }
-  if (loading) return <Panel><div style={{ padding: SP.md, fontSize: 13, color: K.textSecondary }}>Resolving prices and building bridge trades…</div></Panel>;
-  if (error) return <Panel><div style={{ padding: SP.md, fontSize: 13, color: K.negative }}>{error.message}</div></Panel>;
+  if (loading) return <div style={{ padding: SP.md, fontSize: 13, color: K.textSecondary }}>Resolving prices and building bridge trades…</div>;
+  if (error) return <div style={{ padding: SP.md, fontSize: 13, color: K.negative }}>{error.message}</div>;
 
   const { bridge, missingFromPrices, pricedValue, hasPriceData, totalEstCost, currentCoveragePct, targetCoveragePct, orphanCount } = data;
   const orphanRows = bridge.filter(b => b.noSignal);
 
-  return (<div className="grid-responsive" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: SP.lg }}>
-    <Panel>
-      <SL>Bridge Trades · Aligning to Model Target</SL>
+  return (<div className="grid-responsive" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: SP.xl }}>
+    <div style={{ minWidth: 0 }}>
+      <SL right="Aligning current holdings to model target">Bridge Trades</SL>
       {missingFromPrices.length > 0 && (
         <div style={{ marginBottom: SP.md, padding: `${SP.sm}px ${SP.md}px`, background: `${K.warning}1A`, border: `1px solid ${K.warning}4D`, borderRadius: RADIUS.sm, fontSize: 12.5, color: K.warning }}>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>Could not price {missingFromPrices.length} holding{missingFromPrices.length > 1 ? "s" : ""} — excluded from current % and value:</div>
@@ -59,46 +56,60 @@ function BridgeTrades({ result, userPortfolioCount, refreshKey }) {
           <div style={{ color: K.textMuted }}>{orphanRows.map(r => r.ticker).join(", ")}</div>
         </div>
       )}
-      <div style={{ display: "grid", gridTemplateColumns: COLS, fontSize: 11, color: K.textMuted, marginBottom: SP.sm, borderBottom: `1px solid ${K.border}`, paddingBottom: SP.sm }}>
-        <span>Symbol</span><span>Cur %</span><span>Tgt %</span><span>Action</span><span>Units</span><span>Est. Cost (Rs.)</span>
+      <div className="data-table-scroll">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th className="num" data-align="right">Cur %</th>
+              <th className="num" data-align="right">Tgt %</th>
+              <th>Action</th>
+              <th className="num" data-align="right">Units</th>
+              <th className="num" data-align="right">Est. Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            {bridge.map(b => {
+              const { costData } = b;
+              return (
+                <tr key={b.ticker} style={{ opacity: b.missingPrice ? 0.5 : 1 }}>
+                  <td style={{ color: b.noSignal ? K.warning : K.text, fontFamily: K.fontMono, fontWeight: 600 }}>{b.ticker}{b.noSignal ? " *" : ""}</td>
+                  <td className="num" data-align="right" style={{ color: K.textSecondary }}>
+                    {b.missingPrice ? "N/A" : `${(b.currentWeight * 100).toFixed(1)}%`}
+                    {b.priceSource === "merolagani" && <span style={{ fontSize: 9, color: K.accent, marginLeft: 3 }}>ML</span>}
+                  </td>
+                  <td className="num" data-align="right" style={{ color: K.text }}>{b.noSignal ? "—" : `${(b.targetWeight * 100).toFixed(1)}%`}</td>
+                  <td style={{ fontSize: 12, color: b.action === "BUY" ? K.positive : b.action === "SELL" ? K.negative : K.textMuted }}>{b.action}</td>
+                  <td className="num" data-align="right" style={{ color: b.units === null ? K.textMuted : b.units === 0 ? K.warning : K.text }}>
+                    {b.units === null ? (b.missingPrice ? "N/A" : "—") : b.units === 0 ? "< 1 unit" : Math.abs(b.units)}
+                  </td>
+                  <td className="num" data-align="right" style={{ color: costData ? (b.action === "SELL" ? K.negative : K.warning) : K.textMuted }}>
+                    {costData ? `Rs. ${Math.round(costData.total).toLocaleString()}` : "—"}
+                    {b.action === "SELL" && costData && <span style={{ fontSize: 10, color: K.textMuted, display: "block" }}>+CGT if profit</span>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          {bridge.length > 0 && (
+            <tfoot>
+              <tr style={{ fontWeight: 600 }}>
+                <td style={{ color: K.textMuted, fontSize: 11, borderBottom: "none" }}>Total</td>
+                <td className="num" data-align="right" style={{ color: K.text, borderBottom: "none" }}>{hasPriceData ? `${currentCoveragePct.toFixed(1)}%` : "—"}</td>
+                <td className="num" data-align="right" style={{ color: K.text, borderBottom: "none" }}>{targetCoveragePct.toFixed(1)}%</td>
+                <td style={{ borderBottom: "none" }} />
+                <td style={{ borderBottom: "none" }} />
+                <td className="num" data-align="right" style={{ color: K.warning, borderBottom: "none" }}>{totalEstCost > 0 ? `Rs. ${Math.round(totalEstCost).toLocaleString()}` : "—"}</td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
       </div>
-      <div style={{ maxHeight: 400, overflowY: "auto" }}>
-        {bridge.map(b => {
-          const { costData } = b;
-          return (
-            <div key={b.ticker} className="table-row" style={{ display: "grid", gridTemplateColumns: COLS, fontSize: 13, padding: `${SP.xs + 2}px 0`, borderBottom: `1px solid ${K.border}`, opacity: b.missingPrice ? 0.5 : 1 }}>
-              <span style={{ color: b.noSignal ? K.warning : K.text, fontFamily: K.fontMono, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
-                {b.ticker}{b.noSignal ? " *" : ""}
-              </span>
-              <span style={{ color: K.textSecondary, fontFamily: K.fontMono, fontSize: 12.5 }}>
-                {b.missingPrice ? "N/A" : `${(b.currentWeight * 100).toFixed(1)}%`}
-                {b.priceSource === "merolagani" && <span style={{ fontSize: 9, color: K.accent, marginLeft: 3 }}>ML</span>}
-              </span>
-              <span style={{ color: K.text, fontFamily: K.fontMono, fontSize: 12.5 }}>{b.noSignal ? "—" : `${(b.targetWeight * 100).toFixed(1)}%`}</span>
-              <span style={{ color: b.action === "BUY" ? K.positive : b.action === "SELL" ? K.negative : K.textMuted, fontSize: 12 }}>{b.action}</span>
-              <span style={{ fontFamily: K.fontMono, color: b.units === null ? K.textMuted : b.units === 0 ? K.warning : K.text }}>
-                {b.units === null ? (b.missingPrice ? "N/A" : "—") : b.units === 0 ? "< 1 unit" : Math.abs(b.units)}
-              </span>
-              <span style={{ color: costData ? (b.action === "SELL" ? K.negative : K.warning) : K.textMuted, fontSize: 12.5, fontFamily: K.fontMono }}>
-                {costData ? `Rs. ${Math.round(costData.total).toLocaleString()}` : "—"}
-                {b.action === "SELL" && costData && <span style={{ fontSize: 10, color: K.textMuted, display: "block" }}>+CGT if profit</span>}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-      {bridge.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: COLS, fontSize: 13, padding: `${SP.sm}px 0`, borderTop: `1px solid ${K.borderStrong}`, marginTop: SP.xs, fontWeight: 600 }}>
-          <span style={{ color: K.textMuted, fontSize: 11 }}>Total</span>
-          <span style={{ color: K.text, fontFamily: K.fontMono }}>{hasPriceData ? `${currentCoveragePct.toFixed(1)}%` : "—"}</span>
-          <span style={{ color: K.text, fontFamily: K.fontMono }}>{targetCoveragePct.toFixed(1)}%</span>
-          <span /><span />
-          <span style={{ color: K.warning, fontFamily: K.fontMono }}>{totalEstCost > 0 ? `Rs. ${Math.round(totalEstCost).toLocaleString()}` : "—"}</span>
-        </div>
-      )}
       {orphanCount > 0 && <div style={{ fontSize: 11, color: K.textMuted, marginTop: SP.sm }}>* Not covered by the model. Consider reviewing or exiting.</div>}
-    </Panel>
-    <Panel><SL>Portfolio Summary</SL>
+    </div>
+
+    <div>
+      <SL>Portfolio Summary</SL>
       {missingFromPrices.length > 0 && hasPriceData && (
         <div style={{ marginBottom: SP.md, padding: `${SP.sm}px ${SP.md}px`, background: `${K.warning}1A`, border: `1px solid ${K.warning}4D`, borderRadius: RADIUS.sm, fontSize: 12.5, color: K.warning }}>
           Portfolio value is partial — {missingFromPrices.length} holding{missingFromPrices.length > 1 ? "s" : ""} could not be priced.
@@ -146,7 +157,7 @@ function BridgeTrades({ result, userPortfolioCount, refreshKey }) {
         );
 
         return (
-          <div style={{ marginTop: SP.lg, padding: `${SP.md + 2}px ${SP.lg}px`, background: K.surfaceElevated, border: `1px solid ${K.border}`, borderRadius: RADIUS.md }}>
+          <div style={{ padding: `${SP.md + 2}px ${SP.lg}px`, background: K.surfaceElevated, border: `1px solid ${K.border}`, borderRadius: RADIUS.md }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: K.text, marginBottom: SP.md }}>NEPSE Transaction Costs · May 2024 Rates</div>
             {feeRow("Total Turnover", totalTurnover, K.text)}
             {feeRow("Broker Commission", totalBroker, K.text, "(0.24–0.36% tiered)")}
@@ -175,7 +186,7 @@ function BridgeTrades({ result, userPortfolioCount, refreshKey }) {
           </div>
         );
       })()}
-    </Panel>
+    </div>
   </div>);
 }
 

@@ -1,28 +1,33 @@
 /* ============================================================
-   NEPSE analytics platform — global design tokens & chrome.
+   TopoQuant — quantitative research workstation.
    Display/body: Inter — used everywhere except financial figures.
    Data/mono: IBM Plex Mono — reserved for tickers, prices, percentages,
-     and other numeric columns where fixed-width alignment matters.
+     timestamps, and other numeric columns where fixed-width alignment
+     matters.
    One accent (blue) carries all interactive/selection meaning; the
-   dark theme itself is charcoal, not black, and never neon.
+   dark theme itself is charcoal, not black, and never neon. Radius
+   stays small (4–6px) throughout — this is a terminal, not a SaaS
+   dashboard, so chrome (borders, cards, shadows) is used sparingly;
+   hierarchy comes from spacing and type first.
    ============================================================ */
 
 :root{
-  --bg: #0D0F12;
-  --surface: #14171B;
-  --surface-elevated: #191C21;
-  --border: #272B31;
+  --bg: #0B0D0F;
+  --surface: #111418;
+  --surface-elevated: #171B20;
+  --border: #252A31;
   --border-strong: #33383F;
   --text: #F2F4F7;
-  --text-secondary: #9BA1AA;
-  --text-muted: #6F7680;
+  --text-secondary: #9299A3;
+  --text-muted: #656C76;
   --accent: #5B8DEF;
+  --accent-soft: rgba(91,141,239,0.10);
   --gain: #3FB88A;
   --loss: #E5484D;
   --warning: #D9A544;
   --radius-sm: 4px;
   --radius-md: 6px;
-  --radius-lg: 8px;
+  --radius-lg: 6px;
   --speed: 160ms;
   --font-ui: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
@@ -54,7 +59,7 @@ body{
 
 h1, h2, h3{ font-family: var(--font-ui); font-weight: 600; letter-spacing: normal; margin: 0; }
 
-::selection{ background: var(--accent); color: #0D0F12; }
+::selection{ background: var(--accent); color: #0B0D0F; }
 
 /* thin scrollbars */
 ::-webkit-scrollbar{ width: 9px; height: 9px; }
@@ -67,26 +72,69 @@ h1, h2, h3{ font-family: var(--font-ui); font-weight: 600; letter-spacing: norma
 /* ---------- buttons ---------- */
 .btn{
   font-family: var(--font-ui); font-size: 13px; font-weight: 500; letter-spacing: normal;
-  padding: 9px 16px; border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: 8px 14px; border: 1px solid var(--border); border-radius: var(--radius-md);
   display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
   background: transparent; color: var(--text);
   transition: background var(--speed) ease, color var(--speed) ease, border-color var(--speed) ease;
 }
 .btn:hover:not(:disabled){ border-color: var(--border-strong); }
 .btn:disabled{ cursor: default; opacity: .5; }
-.btn-primary{ background: var(--accent); color: #0D0F12; border-color: var(--accent); font-weight: 600; }
-.btn-primary:hover:not(:disabled){ background: #6E9BF2; border-color: #6E9BF2; color: #0D0F12; }
+.btn-primary{ background: var(--accent); color: #0B0D0F; border-color: var(--accent); font-weight: 600; }
+.btn-primary:hover:not(:disabled){ background: #6E9BF2; border-color: #6E9BF2; color: #0B0D0F; }
 .btn-ghost{ background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
 .btn-ghost:hover:not(:disabled){ color: var(--text); border-color: var(--border-strong); }
 .btn-segment{
   font-family: var(--font-ui); font-size: 12.5px; font-weight: 500;
-  padding: 7px 14px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary);
+  padding: 6px 13px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary);
   cursor: pointer; transition: background var(--speed) ease, color var(--speed) ease, border-color var(--speed) ease;
 }
-.btn-segment.active{ background: var(--accent); color: #0D0F12; border-color: var(--accent); font-weight: 600; }
+.btn-segment.active{ background: var(--accent); color: #0B0D0F; border-color: var(--accent); font-weight: 600; }
 .btn-segment:hover:not(.active){ color: var(--text); border-color: var(--border-strong); }
 
-/* ---------- nav rail (persistent left nav) ---------- */
+/* ---------- top utility bar (replaces the old persistent left rail) ---------- */
+.topbar{
+  display: flex; align-items: center; gap: 28px;
+  height: 52px; flex-shrink: 0; padding: 0 20px;
+  border-bottom: 1px solid var(--border); background: var(--bg);
+  position: sticky; top: 0; z-index: 20;
+}
+.topbar-brand{ font-size: 14.5px; font-weight: 600; color: var(--text); flex-shrink: 0; letter-spacing: -0.01em; }
+.topbar-nav{ display: flex; align-items: stretch; gap: 4px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; height: 100%; }
+.topbar-nav::-webkit-scrollbar{ display: none; }
+.topbar-nav-item{
+  position: relative; display: flex; align-items: center; flex-shrink: 0;
+  padding: 0 12px; margin-bottom: -1px; background: none; border: none;
+  border-bottom: 2px solid transparent; color: var(--text-secondary); cursor: pointer;
+  font-family: var(--font-ui); font-size: 13px; font-weight: 500; white-space: nowrap;
+  transition: color var(--speed) ease, border-color var(--speed) ease;
+}
+.topbar-nav-item:hover{ color: var(--text); }
+.topbar-nav-item.active{ color: var(--text); font-weight: 600; border-bottom-color: var(--accent); }
+.topbar-status{ display: flex; align-items: center; gap: 14px; font-size: 12px; color: var(--text-secondary); flex-shrink: 0; white-space: nowrap; }
+.topbar-status .v{ color: var(--text); font-family: var(--font-mono); margin-left: 4px; }
+
+/* ---------- page header (title + one-line context, per page) ---------- */
+.page-header{ display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.page-header-title{ font-size: 18px; font-weight: 600; color: var(--text); line-height: 1.3; }
+.page-header-subtitle{ font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
+
+/* ---------- section header / divider — un-boxed grouping ---------- */
+.section-title{ font-size: 13px; font-weight: 600; color: var(--text); }
+.section-eyebrow{ font-size: 11px; font-weight: 600; letter-spacing: .03em; color: var(--text-muted); text-transform: uppercase; }
+hr.divider{ border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+/* ---------- secondary tabs (e.g. Portfolio: Holdings | Optimal | Cash | Bridge) ---------- */
+.tabs{ display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; overflow-x: auto; }
+.tab-item{
+  padding: 8px 4px; margin-right: 20px; margin-bottom: -1px; background: none; border: none;
+  border-bottom: 2px solid transparent; color: var(--text-secondary); cursor: pointer;
+  font-family: var(--font-ui); font-size: 13px; font-weight: 500; white-space: nowrap;
+  transition: color var(--speed) ease, border-color var(--speed) ease;
+}
+.tab-item:hover{ color: var(--text); }
+.tab-item.active{ color: var(--text); font-weight: 600; border-bottom-color: var(--accent); }
+
+/* ---------- nav rail (legacy class retained for NavItem; unused by the top-bar shell) ---------- */
 .nav-group-label{
   padding: 16px 18px 6px; font-size: 11px; font-weight: 600; letter-spacing: .04em;
   color: var(--text-muted); text-transform: uppercase;
@@ -102,7 +150,7 @@ h1, h2, h3{ font-family: var(--font-ui); font-weight: 600; letter-spacing: norma
 .nav-item.active{ color: var(--text); border-left-color: var(--accent); background: var(--surface); }
 .nav-item .nav-icon{ display: flex; flex-shrink: 0; color: inherit; opacity: 0.85; }
 
-/* ---------- panel/card chrome ---------- */
+/* ---------- panel/card chrome — used selectively, not on every section ---------- */
 .panel-card{
   border: 1px solid var(--border); border-radius: var(--radius-lg);
   background: var(--surface); position: relative;
@@ -122,6 +170,9 @@ h1, h2, h3{ font-family: var(--font-ui); font-weight: 600; letter-spacing: norma
   font-family: var(--font-ui); background: var(--surface-elevated);
 }
 
+/* ---------- status dot (regime / risk-shield / data-source indicators) ---------- */
+.status-dot{ display: inline-block; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
 /* ---------- reveal-on-tab-switch ---------- */
 .reveal{ opacity: 0; transform: translateY(4px); transition: opacity 200ms ease, transform 200ms ease; }
 .reveal.in-view{ opacity: 1; transform: translateY(0); }
@@ -140,10 +191,14 @@ input[type="range"]::-moz-range-thumb{
 .input{
   font-family: var(--font-ui); font-size: 13px; color: var(--text);
   background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);
-  padding: 9px 12px; transition: border-color var(--speed) ease;
+  padding: 8px 11px; transition: border-color var(--speed) ease;
 }
 .input:focus{ outline: none; border-color: var(--accent); }
 .input::placeholder{ color: var(--text-muted); }
+
+/* ---------- filter bar (search + segmented filters above a table) ---------- */
+.filter-bar{ display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.filter-bar-group{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 /* ---------- price-tick flash — brief, calm, fades back to base color ---------- */
 @keyframes tickFlashGain{
@@ -165,7 +220,34 @@ input[type="range"]::-moz-range-thumb{
 .collapse-wrap.collapsed{ grid-template-rows: 0fr; }
 .collapse-inner{ overflow: hidden; min-height: 0; }
 
-/* ---------- table rows ---------- */
+/* ---------- data tables — the primary information device in this app ----------
+   Real <table> markup throughout (not div-grid rows) so headers, alignment
+   and screen readers all get native semantics for free. */
+.data-table{ width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table thead th{
+  position: sticky; top: 0; z-index: 1; background: var(--bg);
+  text-align: left; font-weight: 500; font-size: 11px; color: var(--text-muted);
+  padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.data-table thead th:first-child{ padding-left: 0; }
+.data-table thead th:last-child{ padding-right: 0; }
+.data-table thead th[data-align="right"]{ text-align: right; }
+.data-table td{ padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.data-table td:first-child{ padding-left: 0; }
+.data-table td:last-child{ padding-right: 0; }
+.data-table td[data-align="right"]{ text-align: right; }
+.data-table td.num, .data-table th.num{ font-family: var(--font-mono); }
+.data-table tbody tr{ transition: background var(--speed) ease; }
+.data-table tbody tr:hover{ background: var(--surface-elevated); }
+.data-table tbody tr.clickable{ cursor: pointer; }
+.data-table tbody tr.selected{ background: var(--accent-soft); }
+.data-table thead th.sortable{ cursor: pointer; user-select: none; }
+.data-table thead th.sortable:hover{ color: var(--text-secondary); }
+.data-table thead th.sort-active{ color: var(--text); }
+.data-table-scroll{ overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.data-table-scroll .data-table{ min-width: 560px; }
+
+/* legacy alias — some tables still compose rows as styled divs */
 .table-row{ transition: background var(--speed) ease; }
 .table-row:hover{ background: var(--surface-elevated); }
 .table-row-clickable{ cursor: pointer; }
@@ -175,12 +257,21 @@ input[type="range"]::-moz-range-thumb{
   border: 1px dashed var(--border); border-radius: var(--radius-md);
   transition: border-color var(--speed) ease, background var(--speed) ease;
 }
-.dropzone.drag-active{ border-color: var(--accent); background: var(--accent-soft, rgba(91,141,239,0.08)); }
+.dropzone.drag-active{ border-color: var(--accent); background: var(--accent-soft); }
+
+/* ---------- loading — quant engine progress checklist ---------- */
+.loading-steps{ display: flex; flex-direction: column; gap: 9px; width: 320px; max-width: 100%; }
+.loading-step{ display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text-muted); }
+.loading-step.done{ color: var(--text-secondary); }
+.loading-step.active{ color: var(--text); }
+.loading-step-mark{ width: 14px; flex-shrink: 0; text-align: center; font-family: var(--font-mono); font-size: 12px; }
+.loading-step.done .loading-step-mark{ color: var(--positive, var(--gain)); }
+.loading-step.active .loading-step-mark{ color: var(--accent); }
 
 /* ---------- responsive utilities ---------- */
 /* Panel-level multi-column layouts (independent panels/cards side by side) —
    collapse to one column below the mobile breakpoint. Not for table-column
-   grids, which use .grid-table-scroll instead so cell/header alignment survives. */
+   grids, which use .data-table-scroll instead so cell/header alignment survives. */
 @media (max-width: 767px){
   .grid-responsive{ grid-template-columns: 1fr !important; }
   .grid-table-scroll{ overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -188,33 +279,14 @@ input[type="range"]::-moz-range-thumb{
 
 /* ---------- mobile shell (≤767px) ----------
    Density drops, visual language (tokens, type, monospace numerals) does not.
-   Nav rail: vertical icon+label column → horizontal scrollable top bar (icon
-   only, label hidden). Persistent dashboard: sticky sidebar → static,
-   full-width, stacked above the tab workspace (regime terrain + watchlist
-   stay visible; the portfolio/risk panel defaults collapsed via useIsMobile()). */
+   Single page scroll throughout — the top bar's nav row becomes horizontally
+   scrollable; the status cluster (data time / stock count / risk shield)
+   hides to save space since it's non-essential on a small screen and
+   remains reachable via the page body. */
 @media (max-width: 767px){
   .app-shell{ flex-direction: column; }
-
-  .app-nav{
-    flex-direction: row; width: 100%; height: auto; min-height: 0;
-    overflow-x: auto; overflow-y: hidden; position: sticky; top: 0; z-index: 6;
-    border-right: none; border-bottom: 1px solid var(--border);
-  }
-  .app-nav-logo{ flex-shrink: 0; border-bottom: none; border-right: 1px solid var(--border); padding: 10px 14px; }
-  .app-nav-logo-sub{ display: none; }
-  .app-nav-items{ flex: none; display: flex; flex-direction: row; padding: 0; }
-  .app-nav-status{ display: none; }
-  .nav-group-label{ display: none; }
-
-  .app-nav .nav-item{
-    flex-direction: column; gap: 3px; width: auto; white-space: nowrap;
-    padding: 8px 14px; border-left: none; border-bottom: 2px solid transparent;
-  }
-  .app-nav .nav-item.active{ border-left-color: transparent; border-bottom-color: var(--accent); }
-  .app-nav .nav-item-label{ display: none; }
-
-  .app-dash{
-    width: 100%; position: static; height: auto; overflow-y: visible;
-    border-right: none; border-bottom: 1px solid var(--border);
-  }
+  .topbar{ gap: 16px; padding: 0 14px; }
+  .topbar-status{ display: none; }
+  .workspace{ padding: 16px !important; }
+  .page-header-title{ font-size: 16px; }
 }

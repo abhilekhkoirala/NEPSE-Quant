@@ -1,11 +1,11 @@
-// Sidebar nav row — icon + readable label, no cryptic 3-letter codes.
-// The icon stays visible in the mobile top-bar (label hides via CSS),
-// so it also acts as the compact/collapsed identifier.
-function NavItem({ icon: Icon, label, active, onClick }) {
+// Top-bar nav item — plain text, underline active state (bottom border +
+// stronger weight), no icon. Icons were dropped from primary navigation
+// deliberately: at six items, text alone reads faster than icon+label
+// ever did, and it keeps the bar from looking like a mobile tab strip.
+function NavItem({ label, active, onClick }) {
   return (
-    <button onClick={onClick} className={`nav-item${active ? " active" : ""}`} title={label}>
-      {Icon && <span className="nav-icon"><Icon /></span>}
-      <span className="nav-item-label">{label}</span>
+    <button onClick={onClick} className={`topbar-nav-item${active ? " active" : ""}`}>
+      {label}
     </button>
   );
 }

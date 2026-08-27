@@ -32,12 +32,16 @@ function AIAnalysis({ result, newsData = [] }) {
   }
 
   const sentColor = { positive: K.positive, negative: K.negative, neutral: K.textMuted };
+  const regimeLabel = { calm: "Calm", stress: "Stress", crisis: "Crisis", fragmented: "Fragmented" }[result.lastRegime] || "—";
 
   return (
     <div className="grid-responsive" style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: SP.lg }}>
       <Panel style={{ display: "flex", flexDirection: "column", minHeight: 520 }}>
-        <SL right={newsData.length > 0 ? `${newsData.length} news items loaded` : "Price data only"}>AI Analyst · Gemini</SL>
-        <div style={{ flex: 1, overflowY: "auto", marginBottom: SP.md, maxHeight: 440 }}>
+        <SL right="Gemini">AI Analyst</SL>
+        <div style={{ fontSize: 11.5, color: K.textMuted, marginBottom: SP.md, paddingBottom: SP.md, borderBottom: `1px solid ${K.border}` }}>
+          Ensemble · {result.signalData.length} stocks · Regime <span style={{ color: K.textSecondary }}>{regimeLabel}</span> · {newsData.length > 0 ? `${newsData.length} news items loaded` : "price data only"}
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", marginBottom: SP.md, maxHeight: 420 }}>
           {history.length === 0 && (
             <div style={{ padding: "20px 0" }}>
               <div style={{ color: K.textMuted, marginBottom: SP.sm, fontSize: 11 }}>Suggested queries</div>
@@ -55,8 +59,8 @@ function AIAnalysis({ result, newsData = [] }) {
             </div>
           )}
           {history.map((m, i) => (
-            <div key={i} style={{ marginBottom: SP.md, padding: `${SP.sm}px ${SP.md}px`, background: m.role === "user" ? K.surfaceElevated : K.surface, border: `1px solid ${K.border}`, borderLeft: `2px solid ${m.role === "user" ? K.accent : K.textMuted}`, borderRadius: RADIUS.sm }}>
-              <div style={{ fontSize: 11, color: m.role === "user" ? K.accent : K.textMuted, marginBottom: 5 }}>{m.role === "user" ? "You" : "Gemini"}</div>
+            <div key={i} style={{ marginBottom: SP.md, padding: `${SP.sm}px ${SP.md}px`, background: m.role === "user" ? K.surfaceElevated : "transparent", borderLeft: `2px solid ${m.role === "user" ? K.accent : K.textMuted}`, borderRadius: RADIUS.sm }}>
+              <div style={{ fontSize: 11, color: m.role === "user" ? K.accent : K.textMuted, marginBottom: 5 }}>{m.role === "user" ? "You" : "Research note"}</div>
               <div style={{ fontSize: 13.5, color: K.text, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{m.content}</div>
             </div>
           ))}
