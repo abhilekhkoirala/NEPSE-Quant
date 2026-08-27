@@ -194,7 +194,10 @@ export default function App() {
 
   return (<div className="app-shell" style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: K.bg, fontFamily: K.fontUI, color: K.text }}>
     <header className="topbar">
-      <div className="topbar-brand">TopoQuant</div>
+      <div className="topbar-brand">
+        <img src="/favicon.svg" alt="" width={20} height={20} style={{ display: "block", borderRadius: 4 }} />
+        TopoQuant
+      </div>
       <nav className="topbar-nav">
         {TABS.map(t => <NavItem key={t.id} label={t.navLabel} active={t.id === tab} onClick={() => setTab(t.id)} />)}
       </nav>
