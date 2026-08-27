@@ -11,11 +11,7 @@
 import { getCurrent } from "./pipelineService.js";
 import { loadNews } from "./newsService.js";
 
-// gemini-1.5-flash (and every 1.0/1.5-era model) has been shut down —
-// all requests to it now 404, which the error middleware surfaces as the
-// generic "The AI provider returned an error." Point at a current,
-// GA Flash model instead.
-const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_MODEL = "gemini-3.6-flash";
 
 function buildSystemContext() {
   const result = getCurrent();
@@ -35,7 +31,7 @@ function buildSystemContext() {
     ? `\n\nRecent NEPSE Market News (${newsCtxLines.length} items, newest first):\n${newsCtxLines.join("\n")}\n\nUse the above headlines as qualitative context when answering. Cross-reference tickers mentioned in headlines with the quantitative signals. Note that sentiment_hint is keyword-based only — apply proper analytical judgement.`
     : "\n\n(No live news data loaded — analysis is based on price/quantitative data only.)";
 
-  return `You are a NEPSE quantitative analyst for the NEPSEQuant v6.0 engine.\n\nQuantitative Metrics:\n- Annualised Return: ${result.m.annRet}%\n- Sharpe Ratio: ${result.m.sharpe}\n- Max Drawdown: ${result.m.maxDD}%\n- Benchmark Return: ${result.m.benRet}%\n- Hit Rate: ${result.m.hitRate}%\n- Ann. Volatility: ${result.m.annVol}%\nCurrent Market Regime: ${last.regime?.toUpperCase() || "CALM"}\nEnsemble Signal: Active | Risk Shield: Active\nUniverse: ${result.tickers.length} liquid NEPSE stocks${newsCtxBlock}`;
+  return `You are a NEPSE quantitative analyst for the NEPSEQuant engine.\n\nQuantitative Metrics:\n- Annualised Return: ${result.m.annRet}%\n- Sharpe Ratio: ${result.m.sharpe}\n- Max Drawdown: ${result.m.maxDD}%\n- Benchmark Return: ${result.m.benRet}%\n- Hit Rate: ${result.m.hitRate}%\n- Ann. Volatility: ${result.m.annVol}%\nCurrent Market Regime: ${last.regime?.toUpperCase() || "CALM"}\nEnsemble Signal: Active | Risk Shield: Active\nUniverse: ${result.tickers.length} liquid NEPSE stocks${newsCtxBlock}`;
 }
 
 async function ask(history) {
