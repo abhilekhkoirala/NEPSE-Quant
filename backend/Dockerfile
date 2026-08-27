@@ -21,11 +21,6 @@ RUN pip3 install --no-cache-dir --break-system-packages -r scrapers/requirements
 # --- App source ---
 COPY . .
 
-# Ensure the data directory exists even though .dockerignore strips its
-# contents (data/* is excluded so scraped CSV/JSON don't bloat the image;
-# the dir itself must exist for the scraper's spawn() cwd to resolve).
-RUN mkdir -p data
-
 ENV NODE_ENV=production
 EXPOSE 3001
 
