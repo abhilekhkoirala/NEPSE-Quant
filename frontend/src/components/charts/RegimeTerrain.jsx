@@ -5,9 +5,12 @@ import { Panel } from "../layout/Panel.jsx";
 // The one signature visual in the app — a live embedding of the current
 // correlation structure (classical MDS on correlation distance) with a
 // local-density field behind it. It carries its visual weight from the
-// primary accent, not a separate decorative color, so it reads as part
-// of the same analytical system as everything else rather than a
-// special "AI" flourish.
+// primary accent, not a separate decorative color — nodes are accent-blue
+// scaled by portfolio weight, with sector conveyed only as a thin ring,
+// so it reads as part of the same analytical system as everything else
+// rather than a separate "bubble chart" flourish. A bounding frame and
+// faint centerlines ground the point cloud as a coordinate space instead
+// of shapes floating free.
 //
 // The point cloud + density field are computed once per backtest run on
 // the backend (backend/src/quant/regime.js) and arrive ready-to-draw as
@@ -28,17 +31,18 @@ function RegimeTerrain({ result }) {
   const homo = result.homoData || [];
   const nearestHomo = homo.reduce((best, p) => (best == null || Math.abs(p.eps - eps) < Math.abs(best.eps - eps)) ? p : best, null) || { β1: 0 };
   const wByTicker = useMemo(() => Object.fromEntries(result.signalData.map(d => [d.ticker, d.weight])), [result.signalData]);
+  const maxAbsW = Math.max(...result.signalData.map(d => Math.abs(d.weight)), 1e-6);
   const edges = useMemo(() => {
     const es = [];
     for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
       const d = Math.sqrt(Math.max(0, 2 * (1 - result.corr[i * n + j])));
-      if (d <= eps) es.push([i, j]);
+      if (d <= eps) es.push([i, j, d]);
     }
     return es;
   }, [result.corr, n, eps]);
   const bands = [0.14, 0.30, 0.48, 0.68];
   const opacities = [0.05, 0.11, 0.19, 0.29, 0.42];
-  const topByWeight = [...result.signalData].sort((a, b) => Math.abs(b.weight) - Math.abs(a.weight)).slice(0, 5).map(d => d.ticker);
+  const topByWeight = [...result.signalData].sort((a, b) => Math.abs(b.weight) - Math.abs(a.weight)).slice(0, 3).map(d => d.ticker);
   const regimeCol = REGIME_COLORS[last.regime] || K.textMuted;
   const regimeLabel = REGIME_LABELS[last.regime] || "—";
 
@@ -64,19 +68,33 @@ function RegimeTerrain({ result }) {
         if (op <= 0) return null;
         return <rect key={`${gx}-${gy}`} x={PAD + gx * cw} y={PAD + gy * ch} width={cw + 0.5} height={ch + 0.5} fill={K.accent} fillOpacity={op} />;
       }))}
-      {edges.map(([i, j], k) => (
-        <line key={k} x1={PAD + points[i].x * innerW} y1={PAD + points[i].y * innerH} x2={PAD + points[j].x * innerW} y2={PAD + points[j].y * innerH} stroke={K.textSecondary} strokeOpacity={0.14} strokeWidth={1} />
-      ))}
+
+      {/* bounding frame + faint centerlines — grounds the embedding as a
+          coordinate space rather than shapes floating on nothing */}
+      <line x1={PAD + innerW / 2} y1={PAD} x2={PAD + innerW / 2} y2={PAD + innerH} stroke={K.border} strokeOpacity={0.5} strokeWidth={1} strokeDasharray="2 3" />
+      <line x1={PAD} y1={PAD + innerH / 2} x2={PAD + innerW} y2={PAD + innerH / 2} stroke={K.border} strokeOpacity={0.5} strokeWidth={1} strokeDasharray="2 3" />
+      <rect x={PAD} y={PAD} width={innerW} height={innerH} fill="none" stroke={K.border} strokeWidth={1} />
+
+      {edges.map(([i, j, d], k) => {
+        const strength = eps > 0 ? Math.max(0, 1 - d / eps) : 0;
+        const op = 0.04 + strength * 0.22;
+        return <line key={k} x1={PAD + points[i].x * innerW} y1={PAD + points[i].y * innerH} x2={PAD + points[j].x * innerW} y2={PAD + points[j].y * innerH} stroke={K.textSecondary} strokeOpacity={op} strokeWidth={0.75} />;
+      })}
       {result.tickers.map((t, i) => {
         const p = points[i]; if (!p) return null;
         const w = Math.abs(wByTicker[t] || 0);
-        const r = 1.8 + Math.sqrt(w) * 18;
+        const wNorm = Math.min(1, w / maxAbsW);
+        const r = Math.min(2 + Math.sqrt(w) * 14, 13);
         const secIdx = secNames.indexOf(sectorByTicker[t]);
-        const col = secColors[secIdx === -1 ? 0 : secIdx] ?? K.textMuted;
+        const ringCol = secColors[secIdx === -1 ? 0 : secIdx] ?? K.textMuted;
         const cx = PAD + p.x * innerW, cy = PAD + p.y * innerH;
+        const isTop = topByWeight.includes(t);
         return (<g key={t}>
-          <circle cx={cx} cy={cy} r={r} fill={col} fillOpacity={0.9} stroke={K.bg} strokeWidth={1} />
-          {topByWeight.includes(t) && <text x={cx + r + 3} y={cy + 3} fontSize={9} fontFamily={K.fontMono} fill={K.textSecondary}>{t}</text>}
+          <circle cx={cx} cy={cy} r={r} fill={K.accent} fillOpacity={0.32 + wNorm * 0.5} stroke={ringCol} strokeOpacity={0.6} strokeWidth={1.25} />
+          {isTop && (<>
+            <rect x={cx + r + 2} y={cy - 8} width={t.length * 5.6 + 8} height={13} rx={2} fill={K.bg} fillOpacity={0.85} stroke={K.border} strokeWidth={0.5} />
+            <text x={cx + r + 6} y={cy + 2} fontSize={9} fontFamily={K.fontMono} fill={K.textSecondary}>{t}</text>
+          </>)}
         </g>);
       })}
       <g>
