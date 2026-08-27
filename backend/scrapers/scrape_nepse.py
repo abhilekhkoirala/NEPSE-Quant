@@ -4,7 +4,7 @@ NEPSE Historical Price Scraper — Full Universe
 1. Fetches the full company list from Merolagani (~1630 tickers)
 2. Scrapes daily closing prices for every ticker via the chart API
 3. Filters to liquid stocks (>=400 trading days, >=45% coverage)
-4. Saves nepse_prices.csv and nepse_sectors.csv for the TopoQuant app
+4. Saves nepse_prices.csv and nepse_sectors.csv for the NEPSEQuant app
 
 Requirements:
     pip install requests pandas

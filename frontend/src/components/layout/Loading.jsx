@@ -19,7 +19,7 @@ function Loading({ phase, pct }) {
     <div style={{ minHeight: "100vh", background: K.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: K.fontUI, padding: SP.xl }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: SP.xxl }}>
         <img src="/favicon.svg" alt="" width={20} height={20} style={{ display: "block", borderRadius: 4 }} />
-        <div style={{ fontSize: 15, fontWeight: 600, color: K.text }}>TopoQuant</div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: K.text }}>NEPSEQuant</div>
       </div>
 
       <div className="loading-steps" style={{ marginBottom: SP.xl }}>

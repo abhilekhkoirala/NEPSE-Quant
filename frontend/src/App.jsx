@@ -169,7 +169,7 @@ export default function App() {
   if (fatalError) {
     return (<div style={{ minHeight: "100vh", background: K.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: SP.xl }}>
       <div style={{ maxWidth: 460, textAlign: "center" }}>
-        <div style={{ fontSize: 15, fontWeight: 600, color: K.text, marginBottom: SP.md }}>Unable to load TopoQuant</div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: K.text, marginBottom: SP.md }}>Unable to load NEPSEQuant</div>
         <div style={{ fontSize: 14, color: K.negative, marginBottom: SP.md, lineHeight: 1.6 }}>{fatalError}</div>
         <div style={{ fontSize: 13, color: K.textSecondary, lineHeight: 1.7, marginBottom: SP.xl }}>
           This build talks to a separate backend over HTTP — start it with <code style={{ fontFamily: K.fontMono, fontSize: 12.5, background: K.surfaceElevated, border: `1px solid ${K.border}`, borderRadius: RADIUS.sm, padding: "2px 7px", color: K.text }}>cd backend && npm start</code>.
@@ -196,7 +196,7 @@ export default function App() {
     <header className="topbar">
       <div className="topbar-brand">
         <img src="/favicon.svg" alt="" width={20} height={20} style={{ display: "block", borderRadius: 4 }} />
-        TopoQuant
+        NEPSEQuant
       </div>
       <nav className="topbar-nav">
         {TABS.map(t => <NavItem key={t.id} label={t.navLabel} active={t.id === tab} onClick={() => setTab(t.id)} />)}

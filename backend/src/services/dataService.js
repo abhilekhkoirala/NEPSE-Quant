@@ -10,8 +10,12 @@
 // nepse_prices.csv — the check that followed it (`existsSync(CSV_OUT)`)
 // only ever passed because an old prices CSV happened to still be on
 // disk from some earlier manual run of scrape_nepse.py. Both triggers now
-// point at scrape_nepse.py (which writes prices + sectors + news
-// together), matching what the scheduler's own comments say it's for.
+// point at scrape_nepse.py (which writes prices + sectors, and a *basic*
+// news pass) for the CSVs, followed by a best-effort run of the richer,
+// dependency-free scrape_news.py (6 sources vs. scrape_nepse.py's 2, and
+// no beautifulsoup4 requirement) to overwrite nepse_news.json with better
+// data. If the news pass fails for any reason, the refresh still succeeds
+// — price/sector data is the critical path, news is best-effort on top.
 import { spawn } from "child_process";
 import { existsSync, readFileSync, statSync } from "fs";
 import { join, dirname } from "path";
@@ -24,8 +28,10 @@ const SCRAPERS_DIR = join(__dirname, "..", "..", "scrapers");
 
 const CSV_OUT = join(DATA_DIR, "nepse_prices.csv");
 const SECTORS_OUT = join(DATA_DIR, "nepse_sectors.csv");
+const NEWS_OUT = join(DATA_DIR, "nepse_news.json");
 const PORTFOLIO_FILE = join(DATA_DIR, "portfolio.csv");
 const PRICE_SCRAPER = join(SCRAPERS_DIR, "scrape_nepse.py");
+const NEWS_SCRAPER = join(SCRAPERS_DIR, "scrape_news.py");
 
 // ─── Raw price/sector data, cached until the next successful scrape ───────
 let _raw = null;
@@ -72,6 +78,50 @@ function loadDefaultPortfolio() {
 // nepse_prices.csv / nepse_sectors.csv / portfolio.csv paths land there) ──
 let scraperRunning = false;
 
+function runPriceScraper() {
+  return new Promise((resolve, reject) => {
+    const py = spawn("python3", [PRICE_SCRAPER], { cwd: DATA_DIR });
+
+    py.stdout.on("data", d => process.stdout.write(d.toString()));
+    py.stderr.on("data", d => process.stderr.write(d.toString()));
+
+    py.on("close", code => {
+      if (code !== 0) return reject(new Error(`Price scraper exited with code ${code}`));
+      if (!existsSync(CSV_OUT)) return reject(new Error("CSV not found after scrape"));
+      resolve("ok");
+    });
+
+    py.on("error", reject);
+  });
+}
+
+// Best-effort: never rejects. A failed news pass logs a warning and
+// leaves whatever nepse_news.json scrape_nepse.py already wrote in place
+// (or, on a brand-new environment, an empty/missing file) — it must not
+// take down the price refresh.
+function runNewsScraper() {
+  return new Promise(resolve => {
+    const py = spawn("python3", [NEWS_SCRAPER], { cwd: DATA_DIR });
+
+    py.stdout.on("data", d => process.stdout.write(d.toString()));
+    py.stderr.on("data", d => process.stderr.write(d.toString()));
+
+    py.on("close", code => {
+      if (code !== 0 || !existsSync(NEWS_OUT)) {
+        console.warn("[scraper] News pass failed (exit code", code, ") — keeping existing nepse_news.json.");
+      } else {
+        console.log("[scraper] News pass done — nepse_news.json refreshed via scrape_news.py.");
+      }
+      resolve();
+    });
+
+    py.on("error", err => {
+      console.warn("[scraper] News pass failed to start:", err.message);
+      resolve();
+    });
+  });
+}
+
 function runScraper() {
   if (scraperRunning) {
     console.log("[scheduler] Scraper already running, skipping.");
@@ -80,26 +130,14 @@ function runScraper() {
   scraperRunning = true;
   console.log("[scraper] Starting NEPSE scraper...");
 
-  return new Promise((resolve, reject) => {
-    const py = spawn("python3", [PRICE_SCRAPER], { cwd: DATA_DIR });
-
-    py.stdout.on("data", d => process.stdout.write(d.toString()));
-    py.stderr.on("data", d => process.stderr.write(d.toString()));
-
-    py.on("close", code => {
-      scraperRunning = false;
-      if (code !== 0) return reject(new Error(`Scraper exited with code ${code}`));
-      if (!existsSync(CSV_OUT)) return reject(new Error("CSV not found after scrape"));
+  return runPriceScraper()
+    .then(async () => {
       invalidateRaw();
       console.log("[scraper] Done — CSV written to", CSV_OUT);
-      resolve("ok");
-    });
-
-    py.on("error", err => {
-      scraperRunning = false;
-      reject(err);
-    });
-  });
+      await runNewsScraper();
+      return "ok";
+    })
+    .finally(() => { scraperRunning = false; });
 }
 
 function isScraperRunning() { return scraperRunning; }
@@ -109,7 +147,7 @@ function isScraperRunning() { return scraperRunning; }
 // so they can later move to cron/APScheduler/etc.) — it calls back into
 // runScraper() above, which stays here since it's a data-access operation.
 export {
-  DATA_DIR, CSV_OUT, SECTORS_OUT, PORTFOLIO_FILE,
+  DATA_DIR, CSV_OUT, SECTORS_OUT, NEWS_OUT, PORTFOLIO_FILE,
   loadRaw, invalidateRaw, loadDefaultPortfolio, parsePortfolioCSV,
   runScraper, isScraperRunning,
 };
