@@ -62,12 +62,22 @@ async function fetchMerolaganiProfileWithReason(symbol) {
     }
     const html = await res.text();
 
-    // Helper: extract a numeric value after a label in a table
+    // Helper: extract a numeric value after a label in a table.
+    // Previously required the value to sit directly inside <b>/<strong>
+    // within 300 chars of the label — broke on IHL (a freshly-listed IPO)
+    // because merolagani inserts extra "recently listed" banner markup
+    // between the label and value, pushing it past the 300-char window,
+    // and the plain-text fallback below never matched either since it
+    // required zero '<' between label and number, which never holds in
+    // a real <td>...</td><td>...</td> layout.
+    // Now: normalize &nbsp;, widen the window to 800 chars, and match any
+    // number that immediately follows a '>' (i.e. is a tag's text content)
+    // rather than requiring a specific bold tag, optionally preceded by
+    // "Rs." — more resilient to markup/currency-prefix changes.
+    const clean = html.replace(/&nbsp;/g, ' ');
     function extractField(label) {
-      // Matches: <td>...label...</td><td>...<b>VALUE</b>...</td>  or plain text
-      const re = new RegExp(label + '[\\s\\S]{0,300}?<(?:b|strong)>([\\d,\\.\\-]+)<\\/(?:b|strong)>', 'i');
-      const m = html.match(re)
-        || html.match(new RegExp(label + '[^|<]{0,60}?([\\d,\\.]+)', 'i'));
+      const re = new RegExp(label + '[\\s\\S]{0,800}?>\\s*(?:Rs\\.?\\s*)?([\\d][\\d,]*\\.?\\d*)\\s*<', 'i');
+      const m = clean.match(re);
       if (!m) return null;
       const v = parseFloat(m[1].replace(/,/g, ''));
       return isFinite(v) ? v : null;
