@@ -7,22 +7,26 @@ import stocksApi from "../../lib/api/stocks.js";
 // (CORS or network)" error text — a real, frequent failure mode from many
 // networks) to GET /api/stocks/:ticker/fundamentals, which fetches
 // server-side (see backend/src/data/externalFetch.js) and is cached.
+// The error message shown below now comes straight from that route's
+// response instead of a single hardcoded string, since the backend
+// distinguishes timeout / blocked / unreachable / unparsable failures —
+// worth reading verbatim rather than collapsing back into one generic line.
 function FundamentalsPanel({ ticker, price }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
   const [retryToken, setRetryToken] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    setData(null); setError(false);
+    setData(null); setErrorMsg(null);
     if (!ticker) return;
     setLoading(true);
     stocksApi.getFundamentals(ticker).then(d => {
       if (cancelled) return;
       setLoading(false);
       setData(d);
-    }).catch(() => { if (!cancelled) { setLoading(false); setError(true); } });
+    }).catch(err => { if (!cancelled) { setLoading(false); setErrorMsg(err?.message || "Could not reach merolagani.com right now."); } });
     return () => { cancelled = true; };
   }, [ticker, retryToken]);
 
@@ -34,13 +38,13 @@ function FundamentalsPanel({ ticker, price }) {
     <div style={{ marginTop: SP.sm, padding: `${SP.md}px ${SP.md + 2}px`, background: K.surfaceElevated, border: `1px solid ${K.border}`, borderRadius: RADIUS.sm }}>
       <div style={{ fontSize: 11, color: K.textMuted, marginBottom: SP.sm }}>Fundamentals · {ticker} · merolagani.com</div>
       {loading && <div style={{ fontSize: 13, color: K.textSecondary }}>Loading…</div>}
-      {error && (
+      {errorMsg && (
         <div style={{ display: "flex", alignItems: "center", gap: SP.md, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13, color: K.warning }}>Could not reach merolagani.com right now.</span>
+          <span style={{ fontSize: 13, color: K.warning }}>{errorMsg}</span>
           <button onClick={() => setRetryToken(t => t + 1)} className="btn btn-ghost" style={{ padding: "4px 12px", fontSize: 12 }}>Retry</button>
         </div>
       )}
-      {!loading && !error && (
+      {!loading && !errorMsg && (
         <div style={{ display: "flex", gap: SP.xl, flexWrap: "wrap" }}>
           <div>
             <div style={{ color: K.textMuted, fontSize: 11, marginBottom: 3 }}>LMP (Rs.)</div>

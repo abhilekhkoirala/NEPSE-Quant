@@ -7,7 +7,7 @@ import { asyncRoute, sendError } from "./_utils.js";
 import { loadRaw, runScraper, isScraperRunning } from "../services/dataService.js";
 import { getLastScheduledScrape } from "../workers/scheduler.js";
 import { getCurrent } from "../services/pipelineService.js";
-import { fetchMerolaganiProfileCached } from "../data/externalFetch.js";
+import { fetchMerolaganiProfileCachedWithReason } from "../data/externalFetch.js";
 
 const router = Router();
 
@@ -94,8 +94,16 @@ router.get("/:ticker/history", (req, res) => {
 // subject to browser CORS, and cached (see data/externalFetch.js).
 router.get("/:ticker/fundamentals", asyncRoute(async (req, res) => {
   const ticker = req.params.ticker.toUpperCase();
-  const profile = await fetchMerolaganiProfileCached(ticker);
-  if (!profile) return sendError(res, 502, "FUNDAMENTALS_UNAVAILABLE", `Could not reach merolagani.com for ${ticker}.`);
+  const { profile, reason } = await fetchMerolaganiProfileCachedWithReason(ticker);
+  if (!profile) {
+    const messages = {
+      timeout: `merolagani.com didn't respond in time for ${ticker} — try again.`,
+      unreachable: `Could not reach merolagani.com for ${ticker} (network/DNS error).`,
+      blocked: `merolagani.com rejected the request for ${ticker} — it may be rate-limiting or blocking this server.`,
+      unparsable: `Reached merolagani.com for ${ticker}, but couldn't find price data on the page — the site's layout may have changed.`,
+    };
+    return sendError(res, 502, "FUNDAMENTALS_UNAVAILABLE", messages[reason] || `Could not reach merolagani.com for ${ticker}.`);
+  }
   res.json({ ticker, ...profile });
 }));
 
