@@ -46,7 +46,7 @@ async function ask(history) {
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }],
   }));
-  const url = `https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
